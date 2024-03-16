@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "ru.sesh.composetraining"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "ru.sesh.composetraining"
@@ -69,4 +69,6 @@ dependencies {
 
     // Coil
     implementation("io.coil-kt:coil-compose:2.2.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
 }

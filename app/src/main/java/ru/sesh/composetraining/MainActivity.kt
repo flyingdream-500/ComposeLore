@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import ru.sesh.composetraining.lore.HomeScreen
 import ru.sesh.composetraining.ui.theme.ComposeTrainingTheme
 import ru.sesh.composetraining.ui.theme.Typography
 
@@ -40,22 +41,7 @@ private var checkBoxState: MutableState<Boolean> = mutableStateOf(false)
 @Composable
 fun BaseTrainingScreen() {
     ComposeTrainingTheme {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Row {
-                TextToolbar()
-                Spacer(modifier = Modifier.weight(1f))
-                CloseIcon()
-            }
-            Row {
-                CounterText()
-            }
-            Row {
-                CheckBoxExample()
-            }
-        }
-
+        HomeScreen()
     }
 }
 
