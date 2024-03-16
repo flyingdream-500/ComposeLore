@@ -1,4 +1,4 @@
-package ru.sesh.composetraining.compose
+package ru.sesh.composetraining.lore.compose
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
