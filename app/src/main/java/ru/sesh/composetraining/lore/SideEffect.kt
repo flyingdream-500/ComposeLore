@@ -1,4 +1,4 @@
-package ru.sesh.composetraining.lore.compose
+package ru.sesh.composetraining.lore
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -13,8 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,11 +26,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import ru.sesh.composetraining.utils.TAG
+import kotlin.math.roundToInt
 
 /**
  * Каждая Composable функция проходит три lifecycle этапа:
@@ -191,7 +198,6 @@ fun RememberUpdatedStateScreen(
 
         TrackPosition(position = sliderPosition)
     }
-
 }
 
 /**
@@ -205,7 +211,7 @@ fun TrackPosition(position: Float) {
     val positionState = rememberUpdatedState(newValue = position)
 
     LaunchedEffect(key1 = Unit) {
-        while(true) {
+        while (true) {
             delay(1000)
             Log.d(TAG, "track position ${positionState.value}")
         }
@@ -229,9 +235,97 @@ fun SideEffectScreen() {
             SideEffect {
                 Log.d(TAG, "HomeScreen log in SideEffect")
             }
-            val a = 1/ 0
+            val a = 1 / 0
         }
     }
 }
+
+/**
+ * Функция derivedStateOf умеет создавать State, который читает значения из других State и подписывается на них
+ *
+ * derivedStateOf создаст нам State, который будет читать значение sliderPosition и округлять его.
+ * Тем самым она избавит DerivedStateOfScreen от прямого чтения sliderPosition и от большого количества рекомпозиции
+ *
+ * derivedStateOf можно использовать и в ViewModel
+ *
+ */
+@Composable
+fun DerivedStateOfScreen() {
+    Column {
+        val sliderPosition = remember { mutableFloatStateOf(1f) }
+        MySlider(sliderPosition)
+        val roundedPosition by remember {
+            derivedStateOf {
+                sliderPosition.floatValue.roundToInt()
+            }
+        }
+        Text(text = "$roundedPosition")
+    }
+}
+
+@Composable
+fun MySlider(sliderPosition: MutableState<Float>) {
+    Slider(
+        value = sliderPosition.value,
+        valueRange = 1f..10f,
+        onValueChange = { sliderPosition.value = it }
+    )
+}
+
+/**
+ * Функция snapshotFlow похожа на derivedState тем, что тоже читает другие State и подписывается на них, чтобы вычислить свое значение.
+ * Но при этом создает она не State, а Flow.
+ *
+ * Основной плюс тут еще в том, что мы можем использовать мощь Flow.
+ * Например, трекать только раз в секунду и только значения больше трех
+ */
+@Composable
+fun SnapshotFlowScreen() {
+    Column {
+        val sliderPosition = remember { mutableFloatStateOf(1f) }
+        MySlider(sliderPosition)
+        LaunchedEffect(key1 = Unit) {
+            val snapshotFlow = snapshotFlow { sliderPosition.value }
+            snapshotFlow
+                .filter { it > 3 }
+                .sample(1_000)
+                .collect {
+                    Log.d(TAG, "track position $it")
+                }
+        }
+    }
+}
+
+/**
+ * Когда мы начнем кликать по тексту и менять значение count, то вычисляться будет только значение в snapshotFlow. Код в блоке derivedStateOf не будет выполняться вообще.
+ *
+ * Так происходит потому, что derivedState нигде не используется. Никто не читает значение из derivedState.
+ * Функция derivedStateOf понимает это и не выполняет ненужную работу.
+ *
+ * А вот комбинация snapshotFlow + collectAsState не настолько умная.
+ * Она вычисляет новое значение при изменениях count несмотря на то, что snapshotState нигде не читается.
+ */
+@Composable
+fun SnapshotFlowVsDerivedStateOf(
+) {
+    Column {
+        var count by remember { mutableStateOf(0) }
+        Text(text = "count = $count", modifier = Modifier.clickable { count++ })
+
+        val derivedState = remember {
+            derivedStateOf {
+                count * 10
+            }
+        }
+
+        val snapshotState = remember {
+            snapshotFlow {
+                count * 10
+            }
+        }.collectAsState(initial = 0)
+
+    }
+}
+
 
 
